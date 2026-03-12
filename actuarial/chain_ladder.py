@@ -357,6 +357,33 @@ class ChainLadder:
         return fig
 
 
+def truncate_triangle(triangle: pd.DataFrame, valuation_lag: int) -> pd.DataFrame:
+    """
+    Truncate a fully-developed triangle to simulate a mid-development
+    valuation date. Useful for backtesting and demonstration.
+
+    Parameters
+    ----------
+    triangle     : fully developed triangle
+    valuation_lag: max lag for the earliest accident year
+
+    Returns
+    -------
+    Truncated triangle with NaN in the lower-right corner
+    """
+    tri = triangle.copy().astype(float)
+    acc_years = sorted(tri.index)
+    lags = sorted(tri.columns)
+
+    for i, acc_year in enumerate(acc_years):
+        max_lag = valuation_lag - i
+        for lag in lags:
+            if lag > max_lag:
+                tri.loc[acc_year, lag] = np.nan
+
+    return tri.dropna(axis=1, how="all")
+
+
 # ---------------------------------------------------------------------
 # Quick demo
 # ---------------------------------------------------------------------
@@ -378,10 +405,13 @@ if __name__ == "__main__":
 
     # Load largest company
     triangle, premium, grname = load_cas_triangle(data_path)
-    print()
+
+    # Truncate to simulate mid-development valuation (lag 6)
+    print("\nTruncating triangle to simulate valuation at lag 6...")
+    triangle_truncated = truncate_triangle(triangle, valuation_lag=6)
 
     # Fit chain ladder
-    cl = ChainLadder(triangle, premium)
+    cl = ChainLadder(triangle_truncated, premium)
     cl.fit()
     cl.development_factors()
     print()
